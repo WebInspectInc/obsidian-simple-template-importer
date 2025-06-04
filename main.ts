@@ -48,23 +48,29 @@ export default class VaultImporterPlugin extends Plugin {
             try {
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
+				const imageTypes = ['.png', '.jpg', '.jpeg', '.gif'];
 
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
                     if (zipEntry.dir) continue; // Skip directories
 					const fileName = filePath.replace(/^.*[\\/]/, '');
+					let content;
 
                     // Get file content
-                    const content = await (zipEntry as JSZip.JSZipObject).async('string');
+					if (imageTypes.some(e => fileName.endsWith(e))) {
+						content = await (zipEntry as JSZip.JSZipObject).async('arrayBuffer');
+					} else {
+						content = await (zipEntry as JSZip.JSZipObject).async('string');
+					}
                     
-                    // Handle CSS files specially
                     let targetPath = path.join(this.settings.importPath, filePath);
+
+                    // Handle CSS files specially
                     if (filePath.endsWith('.css')) {
                         try {
                             const snippetsPath = path.join(this.app.vault.configDir, 'snippets');
                             try {
                                 await this.app.vault.createFolder(snippetsPath);
-                                console.log('Created snippets folder');
                             } catch (error) {
                                 // Ignore error if folder already exists
                                 if (!error.message.includes('already exists')) {
@@ -98,14 +104,25 @@ export default class VaultImporterPlugin extends Plugin {
                         try {
                             await this.app.vault.createFolder(targetDir);
                         } catch (error) {
-                            // Ignore error if folder already exists
+                            // Ignore folder if it already exists
                             if (!error.message.includes('already exists')) {
-                                //throw error;
-								console.warn('File already exists. Skipping.');
 								continue;
                             }
                         }
                     }
+
+					
+					// Handle images specially
+					if (imageTypes.some(e => fileName.endsWith(e))) {
+						console.log(filePath);
+						try {
+							await this.app.vault.createBinary(filePath, content);
+							new Notice (`Image created: ${fileName}`);
+						} catch (error) {
+							throw error;
+						}
+						continue;
+					}
                     
                     // Create the file in the vault
                     await this.app.vault.create(targetPath, content);
