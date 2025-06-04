@@ -49,7 +49,9 @@ export default class VaultImporterPlugin extends Plugin {
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
 				const imageTypes = ['.png', '.jpg', '.jpeg', '.gif'];
-				let overwriteFiles = this.settings.overwriteFiles;
+				const overwriteFiles = this.settings.overwriteFiles;
+				console.log("Overwrite?");
+				console.log(overwriteFiles);
 
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
@@ -74,23 +76,21 @@ export default class VaultImporterPlugin extends Plugin {
                                 await this.app.vault.createFolder(snippetsPath);
                             } catch (error) {
                                 // Ignore error if folder already exists
-                                if (!error.message.includes('already exists')) {
-                                    throw error;
-                                }
-                                console.log('Snippets folder already exists');
                             }
                             
                             // Move CSS file to snippets folder
                             targetPath = path.join(snippetsPath, path.basename(filePath));
                             console.log(`Moving CSS file to: ${targetPath}`);
                             
-                            // Check if file already exists
-                            //const existingFile = this.app.vault.getAbstractFileByPath(targetPath);
                             try {
                                 // Create new file
                                 await this.app.vault.create(targetPath, content);
                             } catch (error) {
 								console.warn('Existing file:', error);
+								if (overwriteFiles) {
+									console.warn('Overwriting file:', targetPath);
+									await this.app.vault.adapter.write(targetPath, content);
+								}
 							}
                             continue; // Skip the file creation at the end
                         } catch (error) {
@@ -118,14 +118,30 @@ export default class VaultImporterPlugin extends Plugin {
 							await this.app.vault.createBinary(targetPath, content);
 							new Notice (`Image created: ${fileName}`);
 						} catch (error) {
-							throw error;
+							if (overwriteFiles) {
+								new Notice(`Image updated: ${fileName}`);
+								await this.app.vault.adapter.writeBinary(targetPath, content);
+							} else {
+								new Notice(`Image already exists: ${fileName}`);
+							}
+							//throw error;
 						}
 						continue;
 					}
                     
                     // Create the file in the vault
-                    await this.app.vault.create(targetPath, content);
-					new Notice(`File created: ${fileName}`);
+					try {
+						await this.app.vault.create(targetPath, content);
+						new Notice(`File created: ${fileName}`);
+					} catch (error) {
+						if (overwriteFiles) {
+							await this.app.vault.adapter.write(targetPath, content);
+							new Notice(`File overwritten: ${fileName}`);
+						} else {
+							new Notice(`File already exists: ${fileName}`);
+						}
+						console.log(error);
+					}
                 }
 
                 new Notice('Files imported successfully!');
@@ -167,9 +183,8 @@ class VaultImporterSettingTab extends PluginSettingTab {
 			.setName('Overwrite Files')
 			.setDesc('Be careful! This setting will cause existing templates to be overwritten. This is desirable if you are updating a template, but otherwise I would leave this off.')
 			.addToggle(text => text
-				.setPlaceholder('Test')
 				.setValue(this.plugin.settings.overwriteFiles)
-				.onCnange(async (value) => {
+				.onChange(async (value) => {
 					this.plugin.settings.overwriteFiles = value;
 					await this.plugin.saveSettings();
 				})
