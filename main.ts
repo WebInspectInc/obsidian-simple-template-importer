@@ -54,6 +54,8 @@ export default class VaultImporterPlugin extends Plugin {
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
                     if (zipEntry.dir) continue; // Skip directories
+					if (zipEntry.name.indexOf('.obsidian') !== -1) continue; // skip obsidian directory
+
 					const fileName = filePath.replace(/^.*[\\/]/, '');
 					let content;
 
