@@ -6,7 +6,7 @@ I got frustrated with the number of steps it takes to install templates into an 
 
 The workflow goes like this:
 
-- Install this plugin from Community Plugins
+- Install this plugin from Community Plugins (pending review)
 - Download a template vault in the form of a .zip file
 - Open the command palette, search for "Import Files from Zip", and select your zip file.
 - You're done!
