@@ -48,10 +48,11 @@ export default class VaultImporterPlugin extends Plugin {
             try {
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
-                
+
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
                     if (zipEntry.dir) continue; // Skip directories
+					const fileName = filePath.replace(/^.*[\\/]/, '');
 
                     // Get file content
                     const content = await (zipEntry as JSZip.JSZipObject).async('string');
@@ -60,7 +61,6 @@ export default class VaultImporterPlugin extends Plugin {
                     let targetPath = path.join(this.settings.importPath, filePath);
                     if (filePath.endsWith('.css')) {
                         try {
-                            // Try to create the snippets folder directly
                             const snippetsPath = path.join(this.app.vault.configDir, 'snippets');
                             try {
                                 await this.app.vault.createFolder(snippetsPath);
@@ -78,16 +78,13 @@ export default class VaultImporterPlugin extends Plugin {
                             console.log(`Moving CSS file to: ${targetPath}`);
                             
                             // Check if file already exists
-                            const existingFile = this.app.vault.getAbstractFileByPath(targetPath);
-                            if (existingFile && existingFile instanceof TFile) {
-                                // Update existing file
-                                await this.app.vault.modify(existingFile, content);
-                                console.log(`Updated existing file: ${targetPath}`);
-                            } else {
+                            //const existingFile = this.app.vault.getAbstractFileByPath(targetPath);
+                            try {
                                 // Create new file
                                 await this.app.vault.create(targetPath, content);
-                                console.log(`Created new file: ${targetPath}`);
-                            }
+                            } catch (error) {
+								console.warn('Existing file:', error);
+							}
                             continue; // Skip the file creation at the end
                         } catch (error) {
                             console.log('Error handling CSS file:', error);
@@ -103,19 +100,22 @@ export default class VaultImporterPlugin extends Plugin {
                         } catch (error) {
                             // Ignore error if folder already exists
                             if (!error.message.includes('already exists')) {
-                                throw error;
+                                //throw error;
+								console.warn('File already exists. Skipping.');
+								continue;
                             }
                         }
                     }
                     
                     // Create the file in the vault
                     await this.app.vault.create(targetPath, content);
+					new Notice(`File created: ${fileName}`);
                 }
 
                 new Notice('Files imported successfully!');
             } catch (error) {
                 new Notice(`Error importing files: ${error.message}`);
-                console.error('Import error:', error);
+                console.warn('Import error:', error);
             }
         };
 
