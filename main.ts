@@ -1,6 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting, TFile, TFolder, Notice } from 'obsidian';
 import JSZip from 'jszip';
-import * as path from 'path';
 
 interface VaultImporterSettings {
     importPath: string;
@@ -66,19 +65,19 @@ export default class VaultImporterPlugin extends Plugin {
 						content = await (zipEntry as JSZip.JSZipObject).async('string');
 					}
                     
-                    let targetPath = path.join(this.settings.importPath, filePath);
+                    let targetPath = this.settings.importPath + "/" + filePath;
 
                     // Handle CSS files specially
 					// If there are css files in the template, we move them to the snippets folder
                     if (filePath.endsWith('.css')) {
                         try {
-                            const snippetsPath = path.join(this.app.vault.configDir, 'snippets');
+                            const snippetsPath = this.app.vault.configDir + '/snippets';
 							try {
 								await this.app.vault.createFolder(snippetsPath)
 							} catch { /* Snippets folder already exists */ }
                             
                             // Move CSS file to snippets folder
-                            targetPath = path.join(snippetsPath, path.basename(filePath));
+                            targetPath = snippetsPath + "/" + fileName;
                             try {
                                 await this.app.vault.create(targetPath, content);
                             } catch (error) {
@@ -92,7 +91,8 @@ export default class VaultImporterPlugin extends Plugin {
                     }
                     
                     // Ensure file directories exist
-                    const targetDir = path.dirname(targetPath);
+                    const targetDir = targetPath.replace(fileName, '');
+					console.log(targetDir);
                     if (targetDir !== '.') {
                         try {
                             await this.app.vault.createFolder(targetDir);
