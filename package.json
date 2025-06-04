@@ -1,5 +1,5 @@
 {
-    "name": "obsidian-vault-importer",
+    "name": "obsidian-simple-vault-importer",
     "version": "1.0.0",
     "description": "Import files from a ZIP archive into your Obsidian vault",
     "main": "main.js",
