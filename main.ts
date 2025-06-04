@@ -50,8 +50,6 @@ export default class VaultImporterPlugin extends Plugin {
                 const zipContent = await zip.loadAsync(file);
 				const imageTypes = ['.png', '.jpg', '.jpeg', '.gif'];
 				const overwriteFiles = this.settings.overwriteFiles;
-				console.log("Overwrite?");
-				console.log(overwriteFiles);
 
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
@@ -69,50 +67,40 @@ export default class VaultImporterPlugin extends Plugin {
                     let targetPath = path.join(this.settings.importPath, filePath);
 
                     // Handle CSS files specially
+					// If there are css files in the template, we move them to the snippets folder
                     if (filePath.endsWith('.css')) {
                         try {
                             const snippetsPath = path.join(this.app.vault.configDir, 'snippets');
-                            try {
-                                await this.app.vault.createFolder(snippetsPath);
-                            } catch (error) {
-                                // Ignore error if folder already exists
-                            }
+							try {
+								await this.app.vault.createFolder(snippetsPath)
+							} catch { /* Snippets folder already exists */ }
                             
                             // Move CSS file to snippets folder
                             targetPath = path.join(snippetsPath, path.basename(filePath));
-                            console.log(`Moving CSS file to: ${targetPath}`);
-                            
                             try {
-                                // Create new file
                                 await this.app.vault.create(targetPath, content);
                             } catch (error) {
-								console.warn('Existing file:', error);
-								if (overwriteFiles) {
-									console.warn('Overwriting file:', targetPath);
-									await this.app.vault.adapter.write(targetPath, content);
-								}
+								if (overwriteFiles) await this.app.vault.adapter.write(targetPath, content);
 							}
-                            continue; // Skip the file creation at the end
+
+                            continue;
                         } catch (error) {
-                            console.log('Error handling CSS file:', error);
-                            console.log('Placing CSS file in import path instead');
+							// error handling css file, it will stay in the template folder instead
                         }
                     }
                     
-                    // Ensure the directory exists
+                    // Ensure file directories exist
                     const targetDir = path.dirname(targetPath);
                     if (targetDir !== '.') {
                         try {
                             await this.app.vault.createFolder(targetDir);
                         } catch (error) {
                             // Ignore folder if it already exists
-                            if (!error.message.includes('already exists')) {
-								continue;
-                            }
+                            if (!error.message.includes('already exists')) continue; 
                         }
                     }
 					
-					// Handle images specially
+					// Handle images
 					if (imageTypes.some(e => fileName.endsWith(e))) {
 						try {
 							await this.app.vault.createBinary(targetPath, content);
@@ -124,12 +112,11 @@ export default class VaultImporterPlugin extends Plugin {
 							} else {
 								new Notice(`Image already exists: ${fileName}`);
 							}
-							//throw error;
 						}
 						continue;
 					}
                     
-                    // Create the file in the vault
+                    // Handle all other file in the vault
 					try {
 						await this.app.vault.create(targetPath, content);
 						new Notice(`File created: ${fileName}`);
