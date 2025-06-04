@@ -49,6 +49,7 @@ export default class VaultImporterPlugin extends Plugin {
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
 				const imageTypes = ['.png', '.jpg', '.jpeg', '.gif'];
+				let overwriteFiles = this.settings.overwriteFiles;
 
                 // Process each file in the zip
                 for (const [filePath, zipEntry] of Object.entries(zipContent.files)) {
@@ -161,5 +162,17 @@ class VaultImporterSettingTab extends PluginSettingTab {
                     this.plugin.settings.importPath = value;
                     await this.plugin.saveSettings();
                 }));
+
+		new Setting(containerEl)
+			.setName('Overwrite Files')
+			.setDesc('Be careful! This setting will cause existing templates to be overwritten. This is desirable if you are updating a template, but otherwise I would leave this off.')
+			.addToggle(text => text
+				.setPlaceholder('Test')
+				.setValue(this.plugin.settings.overwriteFiles)
+				.onCnange(async (value) => {
+					this.plugin.settings.overwriteFiles = value;
+					await this.plugin.saveSettings();
+				})
+			);
     }
 } 
