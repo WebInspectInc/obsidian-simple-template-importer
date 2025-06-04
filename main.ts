@@ -110,13 +110,11 @@ export default class VaultImporterPlugin extends Plugin {
                             }
                         }
                     }
-
 					
 					// Handle images specially
 					if (imageTypes.some(e => fileName.endsWith(e))) {
-						console.log(filePath);
 						try {
-							await this.app.vault.createBinary(filePath, content);
+							await this.app.vault.createBinary(targetPath, content);
 							new Notice (`Image created: ${fileName}`);
 						} catch (error) {
 							throw error;
