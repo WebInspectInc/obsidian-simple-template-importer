@@ -23,6 +23,8 @@ In order to install a template vault into your own vault, you will need to:
 
 This plugin currently imports all markdown files from a Zip file, and places .css files in the appropriate snippets folder.
 
+By default if there are any name conflicts this plugin will throw an error. If that happens you can either configure an "Import folder" in settings, or toggle the "overwrite files" setting (be careful with that though!)
+
 At the moment it _ignores_ plugins, but eventually I would like for it to support basic plugin management as well.
 
 I wish Obsidian had one-click installation of templates, like Notion does. But until they do, this is at least a little easier than the regular process.
